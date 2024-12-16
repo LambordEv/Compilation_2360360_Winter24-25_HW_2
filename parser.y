@@ -3,309 +3,305 @@
 #include <iostream>
 #include "nodes.hpp"
 #include "output.hpp"
+#include "visitor.hpp"
 
 // bison declarations
 extern int yylineno;
 extern int yylex();
 
+using namespace std;
+using namespace ast;
+
 void yyerror(const char*);
+enum RelOpType whatRelOpRecieved(string);
+enum BinOpType whatBinOpRecieved(string);
 
 // root of the AST, set by the parser and used by other parts of the compiler
-std::shared_ptr<ast::Node> program;
-
-using namespace std;
+shared_ptr<Node> program;
 
 // TODO: Place any additional declarations here
 %}
 
-// TODO: Define tokens here
-%nonassoc ID
-%nonassoc STRING
-%nonassoc NUM
-%nonassoc NUM_B
-%nonassoc COMMA
-%nonassoc SC
-%nonassoc CONTINUE
-%nonassoc BREAK
-%nonassoc WHILE
-%nonassoc ELSE
-%nonassoc IF
-%nonassoc RETURN
-%nonassoc FALSE
-%nonassoc TRUE
-%nonassoc BOOL
-%nonassoc BYTE
-%nonassoc INT
-%nonassoc VOID
 
+
+// TODO: Define tokens here
+%nonassoc   T_ID
+%nonassoc   T_STRING
+%nonassoc   T_NUM
+%nonassoc   T_NUM_B
+%nonassoc   T_COMMA
+%nonassoc   T_SC
+%nonassoc   T_CONTINUE
+%nonassoc   T_BREAK
+%nonassoc   T_WHILE
+%nonassoc   T_ELSE
+%nonassoc   T_IF
+%nonassoc   T_RETURN
+%nonassoc   T_FALSE
+%nonassoc   T_TRUE
+%nonassoc   T_BOOL
+%nonassoc   T_BYTE
+%nonassoc   T_INT
+%nonassoc   T_VOID
 
 // TODO: Define precedence and associativity here
-%left OR
-%left AND
-%left RELOP
-%left BINOP
-%right NOT
-%right ASSIGN
-%left RBRACE
-%left LBRACE
-%left RPAREN
-%left LPAREN
+%left       T_OR
+%left       T_AND
+%left       T_RELOP
+%left       T_BINOP
+%right      T_NOT
+%right      T_ASSIGN
+%left       T_RBRACE
+%left       T_LBRACE
+%left       T_RPAREN
+%left       T_LPAREN
 
 %%
 
+// %type <node> Program
+// %type <funcs> Funcs
+// %type <func> FuncDecl
+
 // While reducing the start variable, set the root of the AST
-Program:  Funcs { program = $1; };
+Program: Funcs { program = $1; }
 
 // TODO: Define grammar here
-Funcs: { $$ = std::make_shared<ast::Funcs>(); }
+Funcs: { $$ = make_shared<Funcs>(); }
     | FuncDecl Funcs 
         { 
-        std::shared_ptr<ast::Funcs> funcs_ptr = std::dynamic_pointer_cast<ast::Funcs>($2);
-        std::shared_ptr<ast::FuncDecl> func_ptr = std::dynamic_pointer_cast<ast::FuncDecl>($1);
+        shared_ptr<Funcs> funcs_ptr = dynamic_pointer_cast<Funcs>($2);
+        shared_ptr<FuncDecl> func_ptr = dynamic_pointer_cast<FuncDecl>($1);
         funcs_ptr->push_back(func_ptr);
         $$ = funcs_ptr;
         }
     ;
 
-FuncDecl: RetType ID LPAREN Formals RPAREN LBRACE Statements RBRACE 
+
+FuncDecl: RetType T_ID T_LPAREN Formals T_RPAREN T_LBRACE Statements T_RBRACE 
     { 
-    std::shared_ptr<ast::ID> id_ptr = std::dynamic_pointer_cast<ast::ID>($2);
-    std::shared_ptr<ast::Type> retType_ptr = std::dynamic_pointer_cast<ast::Type>($1);
-    std::shared_ptr<ast::Formals> formals_ptr = std::dynamic_pointer_cast<ast::Formals>($4);
-    std::shared_ptr<ast::Statements> statements_ptr = std::dynamic_pointer_cast<ast::Statements>($7);
-    $$ = std::make_shared<ast::FuncDecl>(id_ptr, retType_ptr, formals_ptr, statements_ptr); 
+    shared_ptr<ID> id_ptr = dynamic_pointer_cast<ID>($2);
+    shared_ptr<Type> retType_ptr = dynamic_pointer_cast<Type>($1);
+    shared_ptr<Formals> formals_ptr = dynamic_pointer_cast<Formals>($4);
+    shared_ptr<Statements> statements_ptr = dynamic_pointer_cast<Statements>($7);
+    $$ = make_shared<FuncDecl>(id_ptr, retType_ptr, formals_ptr, statements_ptr); 
     }
     ;
 
 RetType: Type { $$ = $1; }
-    | VOID { $$ = $1; }
+    | T_VOID { $$ = $1; }
     ;
 
-Formals: { $$ = std::make_shared<ast::Formals>(); }
+Formals: { $$ = make_shared<Formals>(); }
     | FormalsList { $$ = $1; }
     ;
 
 FormalsList: FormalDecl 
     { 
-    std::shared_ptr<ast::Formal> formalDecl_ptr = std::dynamic_pointer_cast<ast::Formal>($1);
-    $$ = std::make_shared<ast::Formals>(formalDecl_ptr); 
+    shared_ptr<Formal> formalDecl_ptr = dynamic_pointer_cast<Formal>($1);
+    $$ = make_shared<Formals>(formalDecl_ptr); 
     }
-    | FormalDecl COMMA FormalsList 
+    | FormalDecl T_COMMA FormalsList 
         { 
-        std::shared_ptr<ast::Formals> formals_ptr = std::dynamic_pointer_cast<ast::Formals>($3);
-        std::shared_ptr<ast::Formal> formal_ptr = std::dynamic_pointer_cast<ast::Formal>($1);
+        shared_ptr<Formals> formals_ptr = dynamic_pointer_cast<Formals>($3);
+        shared_ptr<Formal> formal_ptr = dynamic_pointer_cast<Formal>($1);
         formals_ptr->push_back(formal_ptr);
         $$ = formals_ptr;
         }
     ;
 
-FormalDecl: Type ID 
+FormalDecl: Type T_ID 
     { 
-    std::shared_ptr<ast::ID> id_ptr = std::dynamic_pointer_cast<ast::ID>($2);
-    std::shared_ptr<ast::Type> retType_ptr = std::dynamic_pointer_cast<ast::Type>($1);
-    $$ = std::make_shared<ast::Formal>(id_ptr, retType_ptr); 
+    shared_ptr<ID> id_ptr = dynamic_pointer_cast<ID>($2);
+    shared_ptr<Type> retType_ptr = dynamic_pointer_cast<Type>($1);
+    $$ = make_shared<Formal>(id_ptr, retType_ptr); 
     }
     ;
 
 Statements: Statement 
     { 
-    std::shared_ptr<ast::Statement> statement_ptr = std::dynamic_pointer_cast<ast::Statement>($1);
-    $$ = std::make_shared<ast::Statements>(statement_ptr); 
+    shared_ptr<Statement> statement_ptr = dynamic_pointer_cast<Statement>($1);
+    $$ = make_shared<Statements>(statement_ptr); 
     }
     | Statements Statement 
         { 
-        std::shared_ptr<ast::Statements> statements_ptr = std::dynamic_pointer_cast<ast::Statements>($1);
-        std::shared_ptr<ast::Statement> statement_ptr = std::dynamic_pointer_cast<ast::Statement>($2);
+        shared_ptr<Statements> statements_ptr = dynamic_pointer_cast<Statements>($1);
+        shared_ptr<Statement> statement_ptr = dynamic_pointer_cast<Statement>($2);
         statements_ptr->push_back(statement_ptr);
         $$ = statements_ptr;
         }
     ;
 
-Statement: LBRACE Statements RBRACE { $$ = $2; }
-    | Type ID SC 
+Statement: T_LBRACE Statements T_RBRACE { $$ = $2; }
+    | Type T_ID T_SC 
         { 
-            std::shared_ptr<ast::ID> id_ptr = std::dynamic_pointer_cast<ast::ID>($2);
-            std::shared_ptr<ast::Type> retType_ptr = std::dynamic_pointer_cast<ast::Type>($1);
-            $$ = std::make_shared<ast::VarDecl>(id_ptr, retType_ptr); 
+            shared_ptr<ID> id_ptr = dynamic_pointer_cast<ID>($2);
+            shared_ptr<Type> retType_ptr = dynamic_pointer_cast<Type>($1);
+            $$ = make_shared<VarDecl>(id_ptr, retType_ptr); 
         }
-    | Type ID ASSIGN Exp SC 
+    | Type T_ID T_ASSIGN Exp T_SC 
         { 
-            std::shared_ptr<ast::ID> id_ptr = std::dynamic_pointer_cast<ast::ID>($2);
-            std::shared_ptr<ast::Type> retType_ptr = std::dynamic_pointer_cast<ast::Type>($1);
-            std::shared_ptr<ast::Exp> exp_ptr = std::dynamic_pointer_cast<ast::Exp>($4);
-            $$ = std::make_shared<ast::VarDecl>(id_ptr, retType_ptr, exp_ptr); 
+            shared_ptr<ID> id_ptr = dynamic_pointer_cast<ID>($2);
+            shared_ptr<Type> retType_ptr = dynamic_pointer_cast<Type>($1);
+            shared_ptr<Exp> exp_ptr = dynamic_pointer_cast<Exp>($4);
+            $$ = make_shared<VarDecl>(id_ptr, retType_ptr, exp_ptr); 
         }
-    | ID ASSIGN Exp SC 
+    | T_ID T_ASSIGN Exp T_SC 
         { 
-            std::shared_ptr<ast::ID> id_ptr = std::dynamic_pointer_cast<ast::ID>($1);
-            std::shared_ptr<ast::Exp> exp_ptr = std::dynamic_pointer_cast<ast::Exp>($3);
-            $$ = std::make_shared<ast::Assign>(id_ptr, exp_ptr); 
+            shared_ptr<ID> id_ptr = dynamic_pointer_cast<ID>($1);
+            shared_ptr<Exp> exp_ptr = dynamic_pointer_cast<Exp>($3);
+            $$ = make_shared<Assign>(id_ptr, exp_ptr); 
         }
-    | Call SC 
+    | Call T_SC 
         { 
             $$ = $1; 
         }
-    | RETURN SC 
+    | T_RETURN T_SC 
         { 
-            $$ = std::make_shared<ast::Return>(); 
+            $$ = make_shared<Return>(); 
         }
-    | RETURN Exp SC 
+    | T_RETURN Exp T_SC 
         { 
-            std::shared_ptr<ast::Exp> exp_ptr = std::dynamic_pointer_cast<ast::Exp>($2);
-            $$ = std::make_shared<ast::Return>(exp_ptr); 
+            shared_ptr<Exp> exp_ptr = dynamic_pointer_cast<Exp>($2);
+            $$ = make_shared<Return>(exp_ptr); 
         }
-    | IF LPAREN Exp RPAREN Statement 
+    | T_IF T_LPAREN Exp T_RPAREN Statement 
         { 
-            std::shared_ptr<ast::Exp> exp_ptr = std::dynamic_pointer_cast<ast::Exp>($3);
-            std::shared_ptr<ast::Statement> statement_ptr = std::dynamic_pointer_cast<ast::Statement>($5);
-            $$ = std::make_shared<ast::If>(exp_ptr, statement_ptr); 
+            shared_ptr<Exp> exp_ptr = dynamic_pointer_cast<Exp>($3);
+            shared_ptr<Statement> statement_ptr = dynamic_pointer_cast<Statement>($5);
+            $$ = make_shared<If>(exp_ptr, statement_ptr); 
         }
-    | IF LPAREN Exp RPAREN Statement ELSE Statement 
+    | T_IF T_LPAREN Exp T_RPAREN Statement T_ELSE Statement 
         { 
-            std::shared_ptr<ast::Exp> exp_ptr = std::dynamic_pointer_cast<ast::Exp>($3);
-            std::shared_ptr<ast::Statement> statement_ptr1 = std::dynamic_pointer_cast<ast::Statement>($5);
-            std::shared_ptr<ast::Statement> statement_ptr2 = std::dynamic_pointer_cast<ast::Statement>($7);
-            $$ = std::make_shared<ast::If>(exp_ptr, statement_ptr1, statement_ptr2); 
+            shared_ptr<Exp> exp_ptr = dynamic_pointer_cast<Exp>($3);
+            shared_ptr<Statement> statement_ptr1 = dynamic_pointer_cast<Statement>($5);
+            shared_ptr<Statement> statement_ptr2 = dynamic_pointer_cast<Statement>($7);
+            $$ = make_shared<If>(exp_ptr, statement_ptr1, statement_ptr2); 
         }
-    | WHILE LPAREN Exp RPAREN Statement 
+    | T_WHILE T_LPAREN Exp T_RPAREN Statement 
         { 
-            std::shared_ptr<ast::Exp> exp_ptr = std::dynamic_pointer_cast<ast::Exp>($3);
-            std::shared_ptr<ast::Statement> statement_ptr = std::dynamic_pointer_cast<ast::Statement>($5);
-            $$ = std::make_shared<ast::While>(exp_ptr, statement_ptr); 
+            shared_ptr<Exp> exp_ptr = dynamic_pointer_cast<Exp>($3);
+            shared_ptr<Statement> statement_ptr = dynamic_pointer_cast<Statement>($5);
+            $$ = make_shared<While>(exp_ptr, statement_ptr); 
         }
-    | BREAK SC 
+    | T_BREAK T_SC 
         { 
-            $$ = std::make_shared<ast::Break>(); 
+            $$ = make_shared<Break>(); 
         }
-    | CONTINUE SC 
+    | T_CONTINUE T_SC 
         { 
-            $$ = std::make_shared<ast::Continue>(); 
+            $$ = make_shared<Continue>(); 
         }
     ;
 
-Call: ID LPAREN ExpList RPAREN 
+Call: T_ID T_LPAREN ExpList T_RPAREN 
         { 
-        std::shared_ptr<ast::ID> id_ptr = std::dynamic_pointer_cast<ast::ID>($1);
-        std::shared_ptr<ast::ExpList> expList_ptr = std::dynamic_pointer_cast<ast::ExpList>($3);
-        $$ = std::make_shared<ast::Call>(id_ptr, expList_ptr); 
+        shared_ptr<ID> id_ptr = dynamic_pointer_cast<ID>($1);
+        shared_ptr<ExpList> expList_ptr = dynamic_pointer_cast<ExpList>($3);
+        $$ = make_shared<Call>(id_ptr, expList_ptr); 
         }
-    | ID LPAREN RPAREN 
+    | T_ID T_LPAREN T_RPAREN 
         { 
-        std::shared_ptr<ast::ID> id_ptr = std::dynamic_pointer_cast<ast::ID>($1);
-        $$ = std::make_shared<ast::Call>(id_ptr); 
+        shared_ptr<ID> id_ptr = dynamic_pointer_cast<ID>($1);
+        $$ = make_shared<Call>(id_ptr); 
         }
     ;
 
 ExpList: Exp 
     { 
-    std::shared_ptr<ast::Exp> exp_ptr = std::dynamic_pointer_cast<ast::Exp>($1);
-    $$ = std::make_shared<ast::ExpList>(exp_ptr); 
+    shared_ptr<Exp> exp_ptr = dynamic_pointer_cast<Exp>($1);
+    $$ = make_shared<ExpList>(exp_ptr); 
     }
-    | Exp COMMA ExpList 
+    | Exp T_COMMA ExpList 
         { 
-        std::shared_ptr<ast::ExpList> exp_list_ptr = std::dynamic_pointer_cast<ast::ExpList>($3);
-        std::shared_ptr<ast::Exp> exp_ptr = std::dynamic_pointer_cast<ast::Exp>($1);
+        shared_ptr<ExpList> exp_list_ptr = dynamic_pointer_cast<ExpList>($3);
+        shared_ptr<Exp> exp_ptr = dynamic_pointer_cast<Exp>($1);
         exp_list_ptr->push_back(exp_ptr);
         $$ = exp_list_ptr;
         }
     ;
 
-Type: INT 
+Type: T_INT 
     { 
-        // std::shared_ptr<ast::Type> retType_ptr = std::dynamic_pointer_cast<ast::Type>($1);
-        $$ = std::make_shared<ast::Type>(ast::BuiltInType::INT); 
+        // shared_ptr<Type> retType_ptr = dynamic_pointer_cast<Type>($1);
+        $$ = make_shared<Type>(BuiltInType::INT); 
     }
-    | BYTE 
+    | T_BYTE 
         { 
-            // std::shared_ptr<ast::Type> retType_ptr = std::dynamic_pointer_cast<ast::Type>($1);
-            $$ = std::make_shared<ast::Type>(ast::BuiltInType::BYTE); 
+            // shared_ptr<Type> retType_ptr = dynamic_pointer_cast<Type>($1);
+            $$ = make_shared<Type>(BuiltInType::BYTE); 
         }
-    | BOOL 
+    | T_BOOL 
         { 
-            // std::shared_ptr<ast::Type> retType_ptr = std::dynamic_pointer_cast<ast::Type>($1);
-            $$ = std::make_shared<ast::Type>(ast::BuiltInType::BOOL); 
+            // shared_ptr<Type> retType_ptr = dynamic_pointer_cast<Type>($1);
+            $$ = make_shared<Type>(BuiltInType::BOOL); 
         }
     ;
 
-Exp: LPAREN Exp RPAREN { $$ = $2; }
-    | Exp BINOP Exp 
+Exp: T_LPAREN Exp T_RPAREN { $$ = $2; }
+    | Exp T_BINOP Exp 
         { 
-            /*std::shared_ptr<ast::Exp> exp_ptr1 = std::dynamic_pointer_cast<ast::Exp>($1);
-            std::shared_ptr<ast::Exp> exp_ptr2 = std::dynamic_pointer_cast<ast::Exp>($3);
-             char op = yytext[0];
-            ast::BinOpType binop_type;
-            switch (op) {  // $2 should be the operator character, e.g., '+', '-', '*', '/'
-                case '+':
-                    binop_type = ast::BinOpType::ADD;
-                    break;
-                case '-':
-                    binop_type = ast::BinOpType::SUB;
-                    break;
-                case '*':
-                    binop_type = ast::BinOpType::MUL;
-                    break;
-                case '/':
-                    binop_type = ast::BinOpType::DIV;
-                    break;
-                default:
-                    yyerror("Unknown binary operator");
-                    YYERROR;
-            }
-            $$ = std::make_shared<ast::BinOp>(exp_ptr1, exp_ptr2, binop_type); */
+            shared_ptr<Exp> exp_ptr1 = dynamic_pointer_cast<Exp>($1);
+            shared_ptr<Exp> exp_ptr2 = dynamic_pointer_cast<Exp>($3);
+            
+            $$ = make_shared<BinOp>(exp_ptr1, exp_ptr2, whatBinOpRecieved($2->value));
         }
-    | ID 
+    | T_ID 
         { 
-            /*std::shared_ptr<ast::ID> id_ptr = std::dynamic_pointer_cast<ast::ID>($1);
-            $$ = std::make_shared<ast::ID>(id_ptr); */
+            //shared_ptr<ID> id_ptr = dynamic_pointer_cast<ID>($1);
+            $$ = make_shared<ID>($1);
         }
     | Call 
         { $$ = $1; }
-    | NUM 
+    | T_NUM 
         { 
-            // $$ = std::make_shared<ast::Num>($1); 
+            $$ = make_shared<Num>($1); 
         }
-    | NUM_B 
+    | T_NUM_B 
         { 
-            // $$ = std::make_shared<ast::NumB>($1); 
+            $$ = make_shared<NumB>($1); 
         }
-    | STRING 
+    | T_STRING 
         { 
-            // $$ = std::make_shared<ast::String>($1); 
+            $$ = make_shared<String>($1); 
         }
-    | TRUE 
+    | T_TRUE 
         { 
-            $$ = std::make_shared<ast::Bool>(true); 
+            $$ = make_shared<Bool>(true); 
         }
-    | FALSE 
+    | T_FALSE 
         { 
-            $$ = std::make_shared<ast::Bool>(false); 
+            $$ = make_shared<Bool>(false); 
         }
-    | NOT Exp 
+    | T_NOT Exp 
         { 
-            std::shared_ptr<ast::Exp> exp_ptr = std::dynamic_pointer_cast<ast::Exp>($2);
-            $$ = std::make_shared<ast::Not>(exp_ptr); 
+            shared_ptr<Exp> exp_ptr = dynamic_pointer_cast<Exp>($2);
+            $$ = make_shared<Not>(exp_ptr); 
         }
-    | Exp AND Exp 
+    | Exp T_AND Exp 
         { 
-            std::shared_ptr<ast::Exp> exp_ptr1 = std::dynamic_pointer_cast<ast::Exp>($1);
-            std::shared_ptr<ast::Exp> exp_ptr2 = std::dynamic_pointer_cast<ast::Exp>($3);
-            $$ = std::make_shared<ast::And>(exp_ptr1, exp_ptr2); 
+            shared_ptr<Exp> exp_ptr1 = dynamic_pointer_cast<Exp>($1);
+            shared_ptr<Exp> exp_ptr2 = dynamic_pointer_cast<Exp>($3);
+            $$ = make_shared<And>(exp_ptr1, exp_ptr2); 
         }
-    | Exp OR Exp 
+    | Exp T_OR Exp 
         { 
-            std::shared_ptr<ast::Exp> exp_ptr1 = std::dynamic_pointer_cast<ast::Exp>($1);
-            std::shared_ptr<ast::Exp> exp_ptr2 = std::dynamic_pointer_cast<ast::Exp>($3);
-            $$ = std::make_shared<ast::Or>(exp_ptr1, exp_ptr2); 
+            shared_ptr<Exp> exp_ptr1 = dynamic_pointer_cast<Exp>($1);
+            shared_ptr<Exp> exp_ptr2 = dynamic_pointer_cast<Exp>($3);
+            $$ = make_shared<Or>(exp_ptr1, exp_ptr2); 
         }
-    | Exp RELOP Exp 
+    | Exp T_RELOP Exp 
         { 
-            // $$ = std::make_shared<ast::RelOp>($1, $3, $2); 
+            shared_ptr<Exp> exp_ptr1 = dynamic_pointer_cast<Exp>($1);
+            shared_ptr<Exp> exp_ptr2 = dynamic_pointer_cast<Exp>($3);
+            
+            RelOpType relop = dynamic_pointer_cast<RelOpType>($2);
+            $$ = make_shared<RelOp>(exp_ptr1, exp_ptr2, relop);
         }
-    | LPAREN Type RPAREN Exp 
+    | T_LPAREN Type T_RPAREN Exp 
         { 
-            std::shared_ptr<ast::Type> type_ptr = std::dynamic_pointer_cast<ast::Type>($2);
-            std::shared_ptr<ast::Exp> exp_ptr = std::dynamic_pointer_cast<ast::Exp>($4);
-            $$ = std::make_shared<ast::Cast>(exp_ptr, type_ptr); 
+            shared_ptr<Type> type_ptr = dynamic_pointer_cast<Type>($2);
+            shared_ptr<Exp> exp_ptr = dynamic_pointer_cast<Exp>($4);
+            $$ = make_shared<Cast>(exp_ptr, type_ptr); 
         }
     ;
 
@@ -316,4 +312,61 @@ Exp: LPAREN Exp RPAREN { $$ = $2; }
 
 void yyerror(const char* msg) {
     cerr << "Syntax error at line " << yylineno << ": " << msg << endl;
+}
+
+BinOpType whatBinOpRecieved(string received)
+{
+    BinOpType retval = 0;
+    switch(received)
+    {
+        case '+':
+            retval = ADD;
+            break;
+        case '-':
+            retval = SUB;
+            break;
+        case '*':
+            retval = MUL;
+            break;
+        case '/':
+            retval = DIV;
+            break;
+        default:
+            yyerror("Unknown binary operator");
+            break;
+    }
+
+    return retval;
+}
+
+RelOpType whatRelOpRecieved(string received)
+{
+    RelOpType retval = 0;
+    //string received = string(yytext);
+    switch(received)
+    {
+        case "==":
+            retval = EQ;
+            break;
+        case "!=":
+            retval = NQ;
+            break;
+        case "<":
+            retval = LT;
+            break;
+        case ">":
+            retval = GT;
+            break;
+        case "<=":
+            retval = LE;
+            break;
+        case ">=":
+            retval = GE;
+            break;
+        default:
+            yyerror("Unknown relop operator");
+            break;
+    }
+
+    return retval;
 }
