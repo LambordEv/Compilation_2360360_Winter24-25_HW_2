@@ -1,30 +1,33 @@
 #include "nodes.hpp"
+#include <iostream>
 #include <string>
 #include <utility>
 
 extern int yylineno;
+extern char *yytext;
 
 namespace ast {
 
-    Node::Node() : line(yylineno) {}
+    Node::Node() : line(yylineno), text(yytext) {}
 
-    Num::Num(const char *str) : Exp(), value(std::stoi(str)) {}
+    Num::Num(const std::string str = "") : Exp(), value(std::stoi(str)) {}
 
-    NumB::NumB(const char *str) : Exp(), value(std::stoi(str)) {}
+    NumB::NumB(const std::string str = "") : Exp(), value(std::stoi(str)) {}
 
-    String::String(const char *str) : Exp(), value(str) {
+    String::String(const std::string str = "") : Exp(), value(str) {
         // Remove the quotes
         value = value.substr(1, value.size() - 2);
+        // std::cout << (this->value) << std::endl;
     }
 
     Bool::Bool(bool value) : Exp(), value(value) {}
 
-    ID::ID(const char *str) : Exp(), value(str) {}
+    ID::ID(const std::string str = "") : Exp(), value(str) {}
 
-    BinOp::BinOp(std::shared_ptr<Exp> left, std::shared_ptr<Exp> right, BinOpType op)
+    BinOp::BinOp(BinOpType op, std::shared_ptr<Exp> left, std::shared_ptr<Exp> right)
             : Exp(), left(std::move(left)), right(std::move(right)), op(op) {}
 
-    RelOp::RelOp(std::shared_ptr<Exp> left, std::shared_ptr<Exp> right, RelOpType op)
+    RelOp::RelOp(RelOpType op, std::shared_ptr<Exp> left, std::shared_ptr<Exp> right)
             : Exp(), left(std::move(left)), right(std::move(right)), op(op) {}
 
     Type::Type(BuiltInType type) : Node(), type(type) {}
@@ -97,7 +100,7 @@ namespace ast {
     FuncDecl::FuncDecl(std::shared_ptr<ID> id, std::shared_ptr<Type> return_type, std::shared_ptr<Formals> formals,
                        std::shared_ptr<Statements> body)
             : Node(), id(std::move(id)), return_type(std::move(return_type)), formals(std::move(formals)),
-              body(std::move(body)) {}
+              body(std::move(body)) { }
 
     Funcs::Funcs(std::shared_ptr<FuncDecl> func) : Node(), funcs({std::move(func)}) {}
 

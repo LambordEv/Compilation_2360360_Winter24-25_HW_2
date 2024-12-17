@@ -10,6 +10,7 @@ namespace ast {
 
     /* Arithmetic operations */
     enum BinOpType {
+        BIN_ERROR = -1,
         ADD, // Addition
         SUB, // Subtraction
         MUL, // Multiplication
@@ -18,6 +19,7 @@ namespace ast {
 
     /* Relational operations */
     enum RelOpType {
+        REL_ERROR = -1,
         EQ, // Equal
         NE, // Not equal
         LT, // Less than
@@ -28,6 +30,7 @@ namespace ast {
 
     /* Built-in types */
     enum BuiltInType {
+        TYPE_ERROR = -1,
         VOID,
         BOOL,
         BYTE,
@@ -40,6 +43,7 @@ namespace ast {
     public:
         // Line number in the source code
         int line;
+        std::string text;
 
         // Use this constructor only while parsing in bison or flex
         Node();
@@ -65,7 +69,7 @@ namespace ast {
         int value;
 
         // Constructor that receives a C-style string that represents the number
-        explicit Num(const char *str);
+        explicit Num(std::string str);
 
         void accept(Visitor &visitor) override {
             visitor.visit(*this);
@@ -79,7 +83,7 @@ namespace ast {
         int value;
 
         // Constructor that receives a C-style (including b character) string that represents the number
-        explicit NumB(const char *str);
+        explicit NumB(std::string str);
 
         void accept(Visitor &visitor) override {
             visitor.visit(*this);
@@ -93,7 +97,7 @@ namespace ast {
         std::string value;
 
         // Constructor that receives a C-style string that represents the string *including quotes*
-        explicit String(const char *str);
+        explicit String(std::string str);
 
         void accept(Visitor &visitor) override {
             visitor.visit(*this);
@@ -121,7 +125,7 @@ namespace ast {
         std::string value;
 
         // Constructor that receives a C-style string that represents the identifier
-        explicit ID(const char *str);
+        explicit ID(std::string str);
 
         void accept(Visitor &visitor) override {
             visitor.visit(*this);
@@ -139,7 +143,7 @@ namespace ast {
         BinOpType op;
 
         // Constructor that receives the left and right operands and the operation
-        BinOp(std::shared_ptr<Exp> left, std::shared_ptr<Exp> right, BinOpType op);
+        BinOp(BinOpType op, std::shared_ptr<Exp> left = nullptr, std::shared_ptr<Exp> right = nullptr);
 
         void accept(Visitor &visitor) override {
             visitor.visit(*this);
@@ -157,7 +161,7 @@ namespace ast {
         RelOpType op;
 
         // Constructor that receives the left and right operands and the operation
-        RelOp(std::shared_ptr<Exp> left, std::shared_ptr<Exp> right, RelOpType op);
+        RelOp(RelOpType op, std::shared_ptr<Exp> left = nullptr, std::shared_ptr<Exp> right = nullptr);
 
         void accept(Visitor &visitor) override {
             visitor.visit(*this);

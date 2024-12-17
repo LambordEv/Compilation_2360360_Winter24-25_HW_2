@@ -2,13 +2,17 @@
 /*Declaration Section*/
 /*------- Include Section -------*/
 #include <stdio.h>
+#include <iostream>
 #include "output.hpp"
 #include "parser.tab.h"
 
 
 /*------- Function Declarion Section -------*/
+using namespace std;
 using namespace ast;
 
+static RelOpType whatRelOpRecieved(string received);
+static BinOpType whatBinOpRecieved(string received);
 void accumalateStringLexema(void);
 
 /*------- Static Variables Declarion Section -------*/
@@ -65,10 +69,10 @@ stringLexemaEnterExit                   (\")
 
 
 %%
-{voidToken}                             { return T_VOID; }
-{intToken}                              { return T_INT; }
-{byteToken}                             { return T_BYTE; }
-{boolToken}                             { return T_BOOL; }
+{voidToken}                             { yylval = make_shared<Type>(VOID); return T_VOID; }
+{intToken}                              { yylval = make_shared<Type>(INT); return T_INT; }
+{byteToken}                             { yylval = make_shared<Type>(BYTE); return T_BYTE; }
+{boolToken}                             { yylval = make_shared<Type>(BOOL); return T_BOOL; }
 {andToken}                              { return T_AND; }
 {orToken}                               { return T_OR; }
 {notToken}                              { return T_NOT; }
@@ -88,30 +92,30 @@ stringLexemaEnterExit                   (\")
 {rBraceToken}                           { return T_RBRACE; }
 {assignToken}                           { return T_ASSIGN; }
 
-{relopSign}                             { return T_RELOP; }
-{binopSign}                             { return T_BINOP; }
+{relopSign}                             { yylval = make_shared<RelOp>(whatRelOpRecieved(yytext)); return T_RELOP; }
+{binopSign}                             { yylval = make_shared<BinOp>(whatBinOpRecieved(yytext)); return T_BINOP; }
 {commentLexema}                         { ; }
-{idLexema}                              { return T_ID; }
-{numLexema}                             { return T_NUM; }
-{byteNumLexema}                         { return T_NUM_B; }
+{idLexema}                              { yylval = make_shared<ID>(yytext); return T_ID; }
+{numLexema}                             { yylval = make_shared<Num>(yytext); return T_NUM; }
+{byteNumLexema}                         { yylval = make_shared<NumB>(yytext); return T_NUM_B; }
 
 
-{stringLexemaEnterExit}                 { BEGIN(STRING_LEXEMA); }
+{stringLexemaEnterExit}                 { BEGIN(STRING_LEXEMA); accumalateStringLexema(); }
 <STRING_LEXEMA>[\\]                     { BEGIN(STRING_ESCAPE); accumalateStringLexema(); }
-<STRING_LEXEMA>{stringLexemaEnterExit}  { BEGIN(INITIAL); accumalateStringLexema(); return T_STRING; }
-<STRING_LEXEMA><<EOF>>                  { BEGIN(INITIAL); return T_STRING; }
-<STRING_LEXEMA>[\n]                     { BEGIN(INITIAL); return T_STRING; }
-<STRING_LEXEMA>[\r]                     { BEGIN(INITIAL); return T_STRING; }
+<STRING_LEXEMA>{stringLexemaEnterExit}  { BEGIN(INITIAL); accumalateStringLexema(); accumalatedString[accumalatedStrLen] = 0; yylval = make_shared<String>(accumalatedString); accumalatedStrLen = 0; return T_STRING; }
+<STRING_LEXEMA><<EOF>>                  { BEGIN(INITIAL); output::errorLex(yylineno); return T_STRING; }
+<STRING_LEXEMA>[\n]                     { BEGIN(INITIAL); output::errorLex(yylineno); return T_STRING; }
+<STRING_LEXEMA>[\r]                     { BEGIN(INITIAL); output::errorLex(yylineno); return T_STRING; }
 <STRING_LEXEMA>(.)                      { accumalateStringLexema(); }
 
 
-<STRING_ESCAPE><<EOF>>                  { BEGIN(INITIAL); return T_STRING; }
+<STRING_ESCAPE><<EOF>>                  { BEGIN(INITIAL); output::errorLex(yylineno); return T_STRING; }
 <STRING_ESCAPE>.                        { BEGIN(STRING_LEXEMA); accumalateStringLexema(); }
 
 
 
 {whitespace}                            ;
-.                                       { output::errorLex(*yytext); }
+.                                       { output::errorLex(yylineno); }
 
 %%
 
@@ -125,4 +129,46 @@ void accumalateStringLexema(void)
     //printf("\n");
 
     accumalatedStrLen += yyleng;
+}
+
+static BinOpType whatBinOpRecieved(string received)
+{
+    //cout << received << endl;
+    BinOpType retval = BIN_ERROR;
+    if("+" == received){
+        retval = ADD;
+    } else if("-" == received){
+        retval = SUB;
+    } else if("*" == received){
+        retval = MUL;
+    } else if("/" == received){
+        retval = DIV;
+    } else {
+        output::errorLex(yylineno);
+    }
+
+    return retval;
+}
+
+static RelOpType whatRelOpRecieved(string received)
+{
+    //cout << received << endl;
+    RelOpType retval = REL_ERROR;
+    if("==" == received){
+        retval = EQ;
+    } else if("!=" == received){
+        retval = NE;
+    } else if("<" == received){
+        retval = LT;
+    } else if(">" == received){
+        retval = GT;
+    } else if("<=" == received){
+        retval = LE;
+    } else if(">=" == received){
+        retval = GE;
+    } else {
+        output::errorLex(yylineno);
+    }
+
+    return retval;
 }
