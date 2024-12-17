@@ -93,7 +93,8 @@ stringLexemaEnterExit                   (\")
 {assignToken}                           { return T_ASSIGN; }
 
 {relopSign}                             { yylval = make_shared<RelOp>(whatRelOpRecieved(yytext)); return T_RELOP; }
-{binopSign}                             { yylval = make_shared<BinOp>(whatBinOpRecieved(yytext)); return T_BINOP; }
+[+-]                                    { yylval = make_shared<BinOp>(whatBinOpRecieved(yytext)); return T_ADD_SUB; }
+[*/]                                    { yylval = make_shared<BinOp>(whatBinOpRecieved(yytext)); return T_MUL_DIV; }
 {commentLexema}                         { ; }
 {idLexema}                              { yylval = make_shared<ID>(yytext); return T_ID; }
 {numLexema}                             { yylval = make_shared<Num>(yytext); return T_NUM; }
@@ -102,10 +103,15 @@ stringLexemaEnterExit                   (\")
 
 {stringLexemaEnterExit}                 { BEGIN(STRING_LEXEMA); accumalateStringLexema(); }
 <STRING_LEXEMA>[\\]                     { BEGIN(STRING_ESCAPE); accumalateStringLexema(); }
-<STRING_LEXEMA>{stringLexemaEnterExit}  { BEGIN(INITIAL); accumalateStringLexema(); accumalatedString[accumalatedStrLen] = 0; yylval = make_shared<String>(accumalatedString); accumalatedStrLen = 0; return T_STRING; }
+<STRING_LEXEMA>{stringLexemaEnterExit}  {   BEGIN(INITIAL); 
+                                            accumalateStringLexema(); 
+                                            accumalatedString[accumalatedStrLen] = 0; 
+                                            yylval = make_shared<String>(accumalatedString); 
+                                            accumalatedStrLen = 0; 
+                                            return T_STRING; }
 <STRING_LEXEMA><<EOF>>                  { BEGIN(INITIAL); output::errorLex(yylineno); return T_STRING; }
-<STRING_LEXEMA>[\n]                     { BEGIN(INITIAL); output::errorLex(yylineno); return T_STRING; }
-<STRING_LEXEMA>[\r]                     { BEGIN(INITIAL); output::errorLex(yylineno); return T_STRING; }
+<STRING_LEXEMA>[\n]                     { BEGIN(INITIAL); output::errorLex(yylineno - 1); return T_STRING; }
+<STRING_LEXEMA>[\r]                     { BEGIN(INITIAL); output::errorLex(yylineno - 1); return T_STRING; }
 <STRING_LEXEMA>(.)                      { accumalateStringLexema(); }
 
 

@@ -50,7 +50,8 @@ shared_ptr<Node> program;
 %left       T_OR
 %left       T_AND
 %left       T_RELOP
-%left       T_BINOP
+%left       T_ADD_SUB
+%left       T_MUL_DIV
 %right      T_NOT
 %left       T_LPAREN
 %left       T_RPAREN
@@ -181,12 +182,20 @@ Type:   T_INT { $$ = make_shared<Type>(BuiltInType::INT); }
             | T_BOOL { $$ = make_shared<Type>(BuiltInType::BOOL); }
 
 Exp:    T_LPAREN Exp T_RPAREN { $$ = $2; }
-            | Exp T_BINOP Exp
+            | Exp T_MUL_DIV Exp
             { 
-                auto left_exp = dynamic_pointer_cast<Exp>($1);
-                auto right_exp = dynamic_pointer_cast<Exp>($3);
                 BinOpType binOp = whatBinOpRecieved($2->text);
-                
+                shared_ptr<Exp> left_exp = dynamic_pointer_cast<Exp>($1);;
+                shared_ptr<Exp> right_exp = dynamic_pointer_cast<Exp>($3);;
+
+                $$ = make_shared<BinOp>(binOp, left_exp, right_exp);
+            }
+            | Exp T_ADD_SUB Exp
+            { 
+                BinOpType binOp = whatBinOpRecieved($2->text);
+                shared_ptr<Exp> left_exp = dynamic_pointer_cast<Exp>($1);;
+                shared_ptr<Exp> right_exp = dynamic_pointer_cast<Exp>($3);;
+
                 $$ = make_shared<BinOp>(binOp, left_exp, right_exp);
             }
             | T_ID { $$ = make_shared<ID>($1->text); }
