@@ -94,7 +94,7 @@ FormalsList: FormalDecl { $$ = make_shared<Formals>(dynamic_pointer_cast<Formal>
         { 
             shared_ptr<Formals> formals_ptr = dynamic_pointer_cast<Formals>($3);
             shared_ptr<Formal> singleFormal_ptr = dynamic_pointer_cast<Formal>($1);
-            formals_ptr->push_back(singleFormal_ptr);
+            formals_ptr->push_front(singleFormal_ptr);
             $$ = formals_ptr;
         }
 
@@ -172,7 +172,7 @@ ExpList: Exp { $$ = make_shared<ExpList>(dynamic_pointer_cast<Exp>($1)); }
             { 
                 shared_ptr<ExpList> exp_list_ptr = dynamic_pointer_cast<ExpList>($3);
                 shared_ptr<Exp> exp_ptr = dynamic_pointer_cast<Exp>($1);
-                exp_list_ptr->push_back(exp_ptr);
+                exp_list_ptr->push_front(exp_ptr);
                 $$ = exp_list_ptr;
             }
 
