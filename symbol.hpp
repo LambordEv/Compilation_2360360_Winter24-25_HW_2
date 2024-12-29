@@ -4,7 +4,6 @@
 #include <string>
 #include <stdexcept>
 
-// Define a Symbol class to represent variables and functions
 class Symbol {
 public:
     enum class SymbolType {
@@ -12,18 +11,28 @@ public:
         FUNCTION
     };
 
+    enum class DataType {
+        INT,
+        BYTE,
+        BOOL,
+        STRING,
+        VOID
+    };
+
 private:
     std::string name;
-    SymbolType type;
-    int index;  // Used to represent the type of the variable/function
+    SymbolType symbolType;
+    DataType dataType;
+    int offset;
 
 public:
-    Symbol(const std::string &name, SymbolType type, const int index)
-        : name(name), type(type), index(index) {}
+    Symbol(const std::string &name, SymbolType symbolType, DataType dataType, int offset)
+        : name(name), symbolType(symbolType), dataType(dataType), offset(offset) {}
 
-    const std::string& getName() const { return name; }
-    SymbolType getType() const { return type; }
-    const int getIndex() const { return index; }
+    const std::string &getName() const { return name; }
+    SymbolType getSymbolType() const { return symbolType; }
+    DataType getDataType() const { return dataType; }
+    int getOffset() const { return offset; }
 };
 
 #endif // SYMBOL_HPP
